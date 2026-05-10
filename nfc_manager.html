@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>NFC Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #060a12;
+    --panel:    #0d1421;
+    --card:     #111c2e;
+    --border:   #1a3a5c;
+    --primary:  #00d4ff;
+    --success:  #00ff88;
+    --danger:   #ff3d5a;
+    --warning:  #ffb700;
+    --purple:   #a855f7;
+    --text:     #e2f0ff;
+    --muted:    #4a6880;
+    --dim:      #1a2d40;
+    --glow-p:   0 0 20px rgba(0,212,255,.3);
+    --glow-s:   0 0 20px rgba(0,255,136,.3);
+    --glow-d:   0 0 20px rgba(255,61,90,.3);
+    --glow-w:   0 0 20px rgba(255,183,0,.3);
+    --glow-pu:  0 0 20px rgba(168,85,247,.3);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background animado */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 20s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes gridMove {
+    0%  { background-position: 0 0; }
+    100%{ background-position: 40px 40px; }
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px 16px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 28px;
+    background: linear-gradient(135deg, #0d1421 0%, #0a1628 100%);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--primary);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(0,212,255,.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .header-icon {
+    font-size: 40px;
+    color: var(--primary);
+    text-shadow: var(--glow-p);
+    animation: pulse 3s ease-in-out infinite;
+    line-height: 1;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; text-shadow: var(--glow-p); }
+    50%      { opacity: .7; text-shadow: 0 0 40px rgba(0,212,255,.6); }
+  }
+
+  .header-info { flex: 1; }
+  .header-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .header-title span { color: var(--primary); }
+
+  .header-sub {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Status badge */
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--dim);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    transition: all .3s;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
+    box-shadow: 0 0 8px var(--danger);
+    transition: all .3s;
+  }
+
+  .status-badge.online .status-dot {
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  .status-badge.online { border-color: rgba(0,255,136,.3); }
+  .status-text { color: var(--danger); transition: color .3s; }
+  .status-badge.online .status-text { color: var(--success); }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50%      { opacity: .4; }
+  }
+
+  /* ── PAINEL ── */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+  }
+
+  .panel-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── CONEXAO ── */
+  .connection-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  select {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+
+  select:focus { border-color: var(--primary); }
+
+  .btn {
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 9px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .15s;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .btn:active { transform: scale(.97); }
+
+  .btn-primary { background: var(--primary); color: #000; box-shadow: var(--glow-p); }
+  .btn-danger  { background: var(--danger);  color: #fff; box-shadow: var(--glow-d); }
+  .btn-dim     { background: var(--dim);     color: var(--muted); }
+  .btn-dim:hover { color: var(--text); background: var(--border); }
+
+  /* ── CPF ── */
+  .cpf-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .cpf-input-wrap {
+    position: relative;
+    display: inline-block;
+  }
+
+  .cpf-input-wrap::before {
+    content: '#';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  input[type=text] {
+    background: var(--card);
+    color: var(--primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px 12px 34px;
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    width: 220px;
+    outline: none;
+    transition: all .2s;
+    caret-color: var(--primary);
+  }
+
+  input[type=text]:focus {
+    border-color: var(--primary);
+    box-shadow: var(--glow-p);
+  }
+
+  .cpf-status {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 1px;
+    transition: color .2s;
+    min-width: 140px;
+  }
+
+  .cpf-status.valid { color: var(--success); }
+  .cpf-status.partial { color: var(--warning); }
+
+  /* ── CARDS ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .action-card {
+    background: var(--card);
+    border: 1px solid var(--dim);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: all .2s;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .action-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .card-top { height: 3px; }
+  .card-body {
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .card-icon {
+    font-size: 36px;
+    line-height: 1;
+    min-width: 44px;
+    transition: transform .2s;
+  }
+
+  .action-card:hover .card-icon { transform: scale(1.1); }
+
+  .card-info { flex: 1; }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .card-desc {
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1.6;
+    letter-spacing: .5px;
+  }
+
+  .card-btn {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+
+  .card-btn:hover { transform: scale(1.1); }
+  .card-btn:active { transform: scale(.95); }
+
+  /* Card cores */
+  .card-ver { --cc: var(--primary);  --cg: var(--glow-p);  }
+  .card-esc { --cc: var(--success);  --cg: var(--glow-s);  }
+  .card-ler { --cc: var(--purple);   --cg: var(--glow-pu); }
+  .card-apa { --cc: var(--danger);   --cg: var(--glow-d);  }
+
+  .action-card { border-top: 3px solid var(--cc); }
+  .action-card:hover { border-color: var(--cc); box-shadow: var(--cg); }
+  .card-icon { color: var(--cc); }
+  .card-title { color: var(--cc); }
+  .card-btn { background: var(--cc); color: #000; }
+
+  /* ── TERMINAL ── */
+  .terminal {
+    background: #050a10;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .terminal-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .terminal-dots span {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  .terminal-dots .d1 { background: #ff5f57; }
+  .terminal-dots .d2 { background: #febc2e; }
+  .terminal-dots .d3 { background: #28c840; }
+
+  .terminal-title {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+
+  .terminal-body {
+    padding: 14px 16px;
+    height: 200px;
+    overflow-y: auto;
+    font-size: 11px;
+    line-height: 1.8;
+    scroll-behavior: smooth;
+  }
+
+  .terminal-body::-webkit-scrollbar { width: 4px; }
+  .terminal-body::-webkit-scrollbar-track { background: transparent; }
+  .terminal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-line { display: flex; gap: 10px; align-items: baseline; }
+  .log-ts { color: var(--muted); font-size: 10px; flex-shrink: 0; }
+  .log-msg { word-break: break-all; }
+
+  .c-ok   { color: #00ff88; }
+  .c-err  { color: #ff3d5a; }
+  .c-info { color: #00d4ff; }
+  .c-warn { color: #ffb700; }
+  .c-uid  { color: #a855f7; }
+  .c-dim  { color: #4a6880; }
+
+  /* ── STATUS BAR ── */
+  .statusbar {
+    margin-top: 8px;
+    padding: 8px 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .statusbar::before {
+    content: '●';
+    color: var(--primary);
+    font-size: 8px;
+    animation: blink 2s infinite;
+  }
+
+  /* ── SCAN OVERLAY ── */
+  .scanning-indicator {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(0,212,255,.08);
+    border: 1px solid rgba(0,212,255,.2);
+    border-radius: 6px;
+    font-size: 10px;
+    color: var(--primary);
+    letter-spacing: 1px;
+  }
+
+  .scanning-indicator.active { display: flex; }
+
+  .scan-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,212,255,.2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-icon">◈</div>
+    <div class="header-info">
+      <div class="header-title">NFC <span>Manager</span></div>
+      <div class="header-sub">Sistema de Gerenciamento de Tags RFID / NFC</div>
+    </div>
+    <div class="status-badge" id="statusBadge">
+      <div class="status-dot"></div>
+      <span class="status-text">OFFLINE</span>
+    </div>
+  </div>
+
+  <!-- CONEXÃO -->
+  <div class="panel">
+    <div class="panel-label">⚡ Conexão Serial</div>
+    <div class="connection-row">
+      <button class="btn btn-primary" id="btnConnect" onclick="toggleConnect()">⚡ Conectar Arduino</button>
+      <div id="portInfo" style="font-size:11px;color:var(--muted);letter-spacing:1px"></div>
+      <div class="scanning-indicator" id="scanIndicator">
+        <div class="scan-spinner"></div>
+        AGUARDANDO TAG...
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:9px;color:var(--muted);letter-spacing:1px">
+      ℹ️ O Chrome abrirá uma janela para selecionar a porta COM do Arduino.
+    </div>
+  </div>
+
+  <!-- CPF -->
+  <div class="panel">
+    <div class="panel-label">🪪 CPF para Gravação</div>
+    <div class="cpf-row">
+      <div class="cpf-input-wrap">
+        <input type="text" id="cpfInput" maxlength="11"
+               placeholder="00000000000"
+               oninput="onCpfInput(this)" autocomplete="off">
+      </div>
+      <div class="cpf-status" id="cpfStatus">Digite 11 dígitos</div>
+    </div>
+  </div>
+
+  <!-- CARDS DE AÇÃO -->
+  <div class="cards-grid">
+
+    <div class="action-card card-ver" onclick="acaoVerificar()">
+      <div class="card-body">
+        <div class="card-icon">◉</div>
+        <div class="card-info">
+          <div class="card-title">Verificar</div>
+          <div class="card-desc">Verifica se a tag está<br>apta para registro</div>
+        </div>
+        <button class="card-btn" onclick="acaoVerificar()">▶</button>
+      </div>
+    </div>
+
+    <div class="action-card card-esc" onclick="acaoEscrever()">
+      <div class="card-body">
+        <div class="card-icon">✎</div>
+        <div class="card-info">
+          <div class="card-title">Escrever</div>
+          <div class="card-desc">Grava o CPF digitado<br>na tag NFC</div>
+        </div>
+        <button class="card-btn" onclick="acaoEscrever()">▶</button>
+      </div>
+    </div>
+
+    <div class="action-card card-ler" onclick="acaoLer()">
+      <div class="card-body">
+        <div class="card-icon">◎</div>
+        <div class="card-info">
+          <div class="card-title">Ler Tag</div>
+          <div class="card-desc">Lê e exibe o conteúdo<br>gravado na tag</div>
+        </div>
+        <button class="card-btn" onclick="acaoLer()">▶</button>
+      </div>
+    </div>
+
+    <div class="action-card card-apa" onclick="acaoApagar()">
+      <div class="card-body">
+        <div class="card-icon">✕</div>
+        <div class="card-info">
+          <div class="card-title">Apagar</div>
+          <div class="card-desc">Apaga todos os dados<br>da tag completamente</div>
+        </div>
+        <button class="card-btn" onclick="acaoApagar()">▶</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TERMINAL -->
+  <div class="terminal">
+    <div class="terminal-header">
+      <div class="terminal-dots">
+        <span class="d1"></span>
+        <span class="d2"></span>
+        <span class="d3"></span>
+      </div>
+      <div class="terminal-title">TERMINAL DE SAÍDA</div>
+      <button class="btn btn-dim" style="padding:4px 10px;font-size:9px" onclick="clearLog()">LIMPAR</button>
+    </div>
+    <div class="terminal-body" id="logBody"></div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar" id="statusBar">Aguardando conexão...</div>
+
+</div>
+
+<script>
+// ──────────────────────────────────────
+// ESTADO
+// ──────────────────────────────────────
+let port = null;
+let reader = null;
+let writer = null;
+let connected = false;
+let buffer = '';
+
+// ──────────────────────────────────────
+// SERIAL
+// ──────────────────────────────────────
+function refreshPorts() {
+  if (!('serial' in navigator)) {
+    alert('Web Serial API não suportada!\nUse o Google Chrome ou Microsoft Edge.');
+  }
+}
+
+async function toggleConnect() {
+  if (connected) {
+    await disconnect();
+  } else {
+    await connect();
+  }
+}
+
+async function connect() {
+  if (!('serial' in navigator)) {
+    alert('Use Google Chrome ou Microsoft Edge para usar a Web Serial API!');
+    return;
+  }
+
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 9600 });
+
+    // Mostrar info da porta
+    const info = port.getInfo();
+    const portLabel = info.usbVendorId ? `VID:${info.usbVendorId.toString(16).toUpperCase()}` : 'Arduino';
+    document.getElementById('portInfo').textContent = `● ${portLabel} conectado`;
+
+    writer = port.writable.getWriter();
+
+    const decoder = new TextDecoderStream();
+    port.readable.pipeTo(decoder.writable);
+    reader = decoder.readable.getReader();
+
+    connected = true;
+    setOnline(true);
+    log('Conectado com sucesso!', 'ok');
+    setStatus('Conectado. Escolha uma ação.');
+
+    document.getElementById('btnConnect').textContent = '✕ Desconectar';
+    document.getElementById('btnConnect').className = 'btn btn-danger';
+
+    readLoop();
+
+  } catch (e) {
+    if (e.name !== 'NotFoundError') {
+      log('Erro ao conectar: ' + e.message, 'err');
+    }
+  }
+}
+
+async function disconnect() {
+  try {
+    connected = false;
+    setScan(false);
+    if (reader) { await reader.cancel(); reader = null; }
+    if (writer) { writer.releaseLock(); writer = null; }
+    if (port)   { await port.close(); port = null; }
+    setOnline(false);
+    document.getElementById('portInfo').textContent = '';
+    log('Desconectado', 'warn');
+    setStatus('Desconectado.');
+    document.getElementById('btnConnect').textContent = '⚡ Conectar Arduino';
+    document.getElementById('btnConnect').className = 'btn btn-primary';
+  } catch (e) {
+    log('Erro ao desconectar: ' + e.message, 'err');
+  }
+}
+
+async function readLoop() {
+  try {
+    while (connected) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      lines.forEach(l => { const t = l.trim(); if (t) onResponse(t); });
+    }
+  } catch (e) {
+    if (connected) log('Conexão perdida', 'err');
+  }
+}
+
+async function send(msg) {
+  if (!writer) return;
+  const data = new TextEncoder().encode(msg + '\n');
+  await writer.write(data);
+}
+
+// ──────────────────────────────────────
+// AÇÕES
+// ──────────────────────────────────────
+function acaoVerificar() {
+  if (!checkConn()) return;
+  log('── VERIFICAR ─────────────────────', 'info');
+  log('Aproxime a tag do leitor...', 'warn');
+  setStatus('Aguardando tag para verificação...');
+  setScan(true);
+  send('VER');
+}
+
+function acaoEscrever() {
+  if (!checkConn()) return;
+  const cpf = document.getElementById('cpfInput').value.trim();
+  if (cpf.length !== 11 || !/^\d+$/.test(cpf)) {
+    alert('Digite exatamente 11 dígitos numéricos no campo CPF!');
+    return;
+  }
+  log('── ESCREVER CPF ──────────────────', 'info');
+  log('CPF: ' + cpf, 'dim');
+  log('Aproxime a tag do leitor...', 'warn');
+  setStatus('Aguardando tag para gravar CPF...');
+  setScan(true);
+  send('ESC:' + cpf);
+}
+
+function acaoLer() {
+  if (!checkConn()) return;
+  log('── LER CONTEÚDO ──────────────────', 'info');
+  log('Aproxime a tag do leitor...', 'warn');
+  setStatus('Aguardando tag para leitura...');
+  setScan(true);
+  send('LER');
+}
+
+function acaoApagar() {
+  if (!checkConn()) return;
+  if (!confirm('⚠️ Tem certeza que deseja APAGAR todos os dados da tag?\n\nEsta ação NÃO pode ser desfeita!')) return;
+  log('── APAGAR TAG ────────────────────', 'info');
+  log('Aproxime a tag do leitor...', 'warn');
+  setStatus('Aguardando tag para apagar...');
+  setScan(true);
+  send('APA');
+}
+
+// ──────────────────────────────────────
+// RESPOSTAS DO ARDUINO
+// ──────────────────────────────────────
+function onResponse(linha) {
+  setScan(false);
+
+  if (linha === 'PRONTO') {
+    log('Arduino pronto!', 'ok');
+    setStatus('Pronto. Escolha uma ação.');
+  } else if (linha.startsWith('UID:')) {
+    log('UID: ' + linha.slice(4), 'uid');
+  } else if (linha.startsWith('VER:APTA')) {
+    log('✓ TAG APTA — ' + linha.split(':')[2], 'ok');
+    setStatus('✓ Tag apta para registro!');
+  } else if (linha.startsWith('VER:INAPTA')) {
+    log('✗ TAG INAPTA — ' + linha.split(':')[2], 'err');
+    setStatus('✗ Tag não está apta.');
+  } else if (linha.startsWith('ESC:OK')) {
+    log('✓ CPF GRAVADO — ' + linha.split(':')[2], 'ok');
+    setStatus('✓ CPF gravado com sucesso!');
+  } else if (linha.startsWith('ESC:ERRO')) {
+    log('✗ ERRO AO GRAVAR — ' + linha.split(':')[2], 'err');
+    setStatus('✗ Erro ao gravar CPF.');
+  } else if (linha.startsWith('LER:OK')) {
+    log('✓ CONTEÚDO: ' + linha.split(':')[2], 'ok');
+    setStatus('✓ Conteúdo: ' + linha.split(':')[2]);
+  } else if (linha.startsWith('LER:VAZIO')) {
+    log('Tag sem dados gravados', 'warn');
+    setStatus('Tag vazia.');
+  } else if (linha.startsWith('LER:ERRO')) {
+    log('✗ ERRO — ' + linha.split(':')[2], 'err');
+  } else if (linha.startsWith('APA:OK')) {
+    log('✓ TAG APAGADA — ' + linha.split(':')[2], 'ok');
+    setStatus('✓ Tag apagada com sucesso!');
+  } else if (linha.startsWith('APA:ERRO')) {
+    log('✗ ERRO AO APAGAR — ' + linha.split(':')[2], 'err');
+    setStatus('✗ Erro ao apagar tag.');
+  }
+}
+
+// ──────────────────────────────────────
+// UI HELPERS
+// ──────────────────────────────────────
+function log(msg, cls = '') {
+  const body = document.getElementById('logBody');
+  const ts   = new Date().toLocaleTimeString('pt-BR');
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-ts c-dim">[${ts}]</span><span class="log-msg c-${cls || 'text'}">${msg}</span>`;
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('logBody').innerHTML = '';
+}
+
+function setStatus(msg) {
+  document.getElementById('statusBar').textContent = msg;
+}
+
+function setOnline(on) {
+  const badge = document.getElementById('statusBadge');
+  badge.querySelector('.status-text').textContent = on ? 'ONLINE' : 'OFFLINE';
+  badge.classList.toggle('online', on);
+}
+
+function setScan(on) {
+  document.getElementById('scanIndicator').classList.toggle('active', on);
+}
+
+function checkConn() {
+  if (!connected) {
+    alert('Conecte o Arduino primeiro!');
+    return false;
+  }
+  return true;
+}
+
+function onCpfInput(el) {
+  el.value = el.value.replace(/\D/g, '').slice(0, 11);
+  const n   = el.value.length;
+  const st  = document.getElementById('cpfStatus');
+  if (n === 11) {
+    st.textContent = '✓ CPF válido';
+    st.className = 'cpf-status valid';
+  } else if (n > 0) {
+    st.textContent = `${11 - n} dígito${11 - n > 1 ? 's' : ''} restante${11 - n > 1 ? 's' : ''}`;
+    st.className = 'cpf-status partial';
+  } else {
+    st.textContent = 'Digite 11 dígitos';
+    st.className = 'cpf-status';
+  }
+}
+
+// Inicializar
+log('Sistema iniciado. Clique em Conectar para começar.', 'dim');
+refreshPorts();
+</script>
+</body>
+</html>
