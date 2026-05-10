@@ -38,7 +38,7 @@ Acesse direto pelo navegador (Chrome/Edge):
 ---
 
 ## 🔌 Conexão dos Pinos
-
+![Esquema de ligações](esquema_ligacoes.svg)
 | MFRC522 | Arduino Uno |
 |---|---|
 | VCC | 3.3V |
@@ -49,6 +49,7 @@ Acesse direto pelo navegador (Chrome/Edge):
 | MISO | Pino 12 |
 | SCK | Pino 13 |
 | IRQ | Opcional |
+
 
 ---
 
@@ -92,11 +93,7 @@ nfc-manager/
 ├── arduino_nfc_serial.ino  ← Código do Arduino
 └── README.md
 ```
-## 🔌 Esquema de Ligações
 
-![Esquema de ligações](esquema_ligacoes.svg)
-
----
 
 ## 🔧 Dependências
 
