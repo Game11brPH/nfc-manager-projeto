@@ -37,8 +37,8 @@ Acesse direto pelo navegador (Chrome/Edge):
 
 ---
 
-## 🔌 Conexão dos Pinos
-![Esquema de ligações](esquema_ligacoes.svg)
+## 🔌 [Conexão dos Pinos]
+[Link para visualização da conexão](esquema_ligacoes.svg)
 | MFRC522 | Arduino Uno |
 |---|---|
 | VCC | 3.3V |
