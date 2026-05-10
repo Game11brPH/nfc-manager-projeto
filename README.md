@@ -92,6 +92,9 @@ nfc-manager/
 ├── arduino_nfc_serial.ino  ← Código do Arduino
 └── README.md
 ```
+## 🔌 Esquema de Ligações
+
+![Esquema de ligações](esquema_ligacoes.svg)
 
 ---
 
