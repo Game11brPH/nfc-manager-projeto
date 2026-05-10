@@ -20,9 +20,7 @@ A interface web, acessível via GitHub Pages, comunica-se diretamente com o Ardu
 
 Acesse direto pelo navegador (Chrome/Edge):
 
-**[▶ Abrir NFC Manager](https://SEU_USUARIO.github.io/NOME_DO_REPO/nfc_manager.html)**
-
-> Substitua `SEU_USUARIO` e `NOME_DO_REPO` pelo seu usuário e nome do repositório.
+**[▶ Abrir NFC Manager](https://Game11brPH.github.io/nfc-manager-projeto/nfc_manager.html)**
 
 ---
 
